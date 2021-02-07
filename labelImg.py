@@ -178,6 +178,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.canvas = Canvas(parent=self)
         self.canvas.zoomRequest.connect(self.zoomRequest)
         self.canvas.setDrawingShapeToSquare(settings.get(SETTING_DRAW_SQUARE, False))
+        self.canvas.setDrawingShapeToPoint(settings.get(SETTING_DRAW_POINT, False))
 
         scroll = QScrollArea()
         scroll.setWidget(self.canvas)
@@ -269,6 +270,10 @@ class MainWindow(QMainWindow, WindowMixin):
 
         create = action(getStr('crtBox'), self.createShape,
                         'w', 'new', getStr('crtBoxDetail'), enabled=False)
+        
+        createPoint = action(getStr('crtPoint'), self.createPoint,
+                        'e', 'newPoint', getStr('crtBoxDetail'), enabled=False)
+
         delete = action(getStr('delBox'), self.deleteSelectedShape,
                         'Delete', 'delete', getStr('delBoxDetail'), enabled=False)
         copy = action(getStr('dupBox'), self.copySelectedShape,
@@ -284,6 +289,10 @@ class MainWindow(QMainWindow, WindowMixin):
                          enabled=False)
         showAll = action('&Show\nRectBox', partial(self.togglePolygons, True),
                          'Ctrl+A', 'hide', getStr('showAllBoxDetail'),
+                         enabled=False)
+
+        clearCursor = action('Clear\nCursor', partial(self.clearCursor, True),
+                         'q', 'hide', getStr('clearCursor'),
                          enabled=False)
 
         help = action(getStr('tutorial'), self.showTutorialDialog, None, 'help', getStr('tutorialDetail'))
@@ -352,7 +361,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Store actions for further handling.
         self.actions = struct(save=save, save_format=save_format, saveAs=saveAs, open=open, close=close, resetAll = resetAll, deleteImg = deleteImg,
-                              lineColor=color1, create=create, delete=delete, edit=edit, copy=copy,
+                              lineColor=color1, create=create, createPoint=createPoint, delete=delete, edit=edit, copy=copy,
                               createMode=createMode, editMode=editMode, advancedMode=advancedMode,
                               shapeLineColor=shapeLineColor, shapeFillColor=shapeFillColor,
                               zoom=zoom, zoomIn=zoomIn, zoomOut=zoomOut, zoomOrg=zoomOrg,
@@ -363,11 +372,11 @@ class MainWindow(QMainWindow, WindowMixin):
                               beginner=(), advanced=(),
                               editMenu=(edit, copy, delete,
                                         None, color1, self.drawSquaresOption),
-                              beginnerContext=(create, edit, copy, delete),
+                              beginnerContext=(create, createPoint, edit, copy, delete),
                               advancedContext=(createMode, editMode, edit, copy,
                                                delete, shapeLineColor, shapeFillColor),
                               onLoadActive=(
-                                  close, create, createMode, editMode),
+                                  close, create, createPoint, createMode, editMode),
                               onShapesPresent=(saveAs, hideAll, showAll))
 
         self.menus = struct(
@@ -417,7 +426,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
-            open, opendir, changeSavedir, openNextImg, openPrevImg, verify, save, save_format, None, create, copy, delete, None,
+            open, opendir, changeSavedir, openNextImg, openPrevImg, verify, save, save_format, None, create,createPoint, copy, delete, None,
             zoomIn, zoom, zoomOut, fitWindow, fitWidth)
 
         self.actions.advanced = (
@@ -550,7 +559,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def toggleAdvancedMode(self, value=True):
         self._beginner = not value
-        self.canvas.setEditing(True)
+        self.canvas.setEditingPolygon(True)
         self.populateModeActions()
         self.editButton.setVisible(not value)
         if value:
@@ -590,6 +599,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dirty = False
         self.actions.save.setEnabled(False)
         self.actions.create.setEnabled(True)
+        self.actions.createPoint.setEnabled(True)
 
     def toggleActions(self, value=True):
         """Enable/Disable widgets which depend on an opened image."""
@@ -653,10 +663,18 @@ class MainWindow(QMainWindow, WindowMixin):
         msg = u'Name:{0} \nApp Version:{1} \n{2} '.format(__appname__, __version__, sys.version_info)
         QMessageBox.information(self, u'Information', msg)
 
+    # new point feature
+    def createPoint(self):
+        assert self.beginner()
+        self.canvas.setEditingPoint(False)
+        self.actions.createPoint.setEnabled(False)
+    # ned new point feature
+
     def createShape(self):
         assert self.beginner()
-        self.canvas.setEditing(False)
+        self.canvas.setEditingPolygon(False)
         self.actions.create.setEnabled(False)
+        self.actions.createPoint.setEnabled(False)
 
     def toggleDrawingSensitive(self, drawing=True):
         """In the middle of drawing, toggling between modes should be disabled."""
@@ -664,12 +682,13 @@ class MainWindow(QMainWindow, WindowMixin):
         if not drawing and self.beginner():
             # Cancel creation.
             print('Cancel creation.')
-            self.canvas.setEditing(True)
+            self.canvas.setEditingPolygon(True)
             self.canvas.restoreCursor()
             self.actions.create.setEnabled(True)
+            self.actions.createPoint.setEnabled(True)
 
     def toggleDrawMode(self, edit=True):
-        self.canvas.setEditing(edit)
+        self.canvas.setEditingPolygon(edit)
         self.actions.createMode.setEnabled(edit)
         self.actions.editMode.setEnabled(not edit)
 
@@ -702,7 +721,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.menus.labelList.exec_(self.labelList.mapToGlobal(point))
 
     def editLabel(self):
-        if not self.canvas.editing():
+        if not self.canvas.isEditingPolygon():
             return
         item = self.currentItem()
         if not item:
@@ -726,7 +745,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def btnstate(self, item= None):
         """ Function to handle difficult examples
         Update on each object """
-        if not self.canvas.editing():
+        if not self.canvas.isEditingPolygon():
             return
 
         item = self.currentItem()
@@ -887,7 +906,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def labelSelectionChanged(self):
         item = self.currentItem()
-        if item and self.canvas.editing():
+        if item and self.canvas.isEditingPolygon():
             self._noSelectionSlot = True
             self.canvas.selectShape(self.itemsToShapes[item])
             shape = self.itemsToShapes[item]
@@ -932,8 +951,9 @@ class MainWindow(QMainWindow, WindowMixin):
             shape = self.canvas.setLastLabel(text, generate_color, generate_color)
             self.addLabel(shape)
             if self.beginner():  # Switch to edit mode.
-                self.canvas.setEditing(True)
+                self.canvas.setEditingPolygon(True)
                 self.actions.create.setEnabled(True)
+                self.actions.createPoint.setEnabled(True)
             else:
                 self.actions.editMode.setEnabled(True)
             self.setDirty()
@@ -1025,6 +1045,10 @@ class MainWindow(QMainWindow, WindowMixin):
     def togglePolygons(self, value):
         for item, shape in self.itemsToShapes.items():
             item.setCheckState(Qt.Checked if value else Qt.Unchecked)
+
+    def clearCursor(self, value):
+        self.tools.clear()
+        self.cursor.setEditingPolygon()
 
     def loadFile(self, filePath=None):
         """Load the specified file, or the last opened file if None."""

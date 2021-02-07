@@ -29,14 +29,14 @@ class Canvas(QWidget):
     shapeMoved = pyqtSignal()
     drawingPolygon = pyqtSignal(bool)
 
-    CREATE, EDIT = list(range(2))
+    CREATE_POLYGON, EDIT_POLYGON, CREATE_POINT, EDIT_POINT = list(range(4))
 
     epsilon = 11.0
 
     def __init__(self, *args, **kwargs):
         super(Canvas, self).__init__(*args, **kwargs)
         # Initialise local state.
-        self.mode = self.EDIT
+        self.mode = self.EDIT_POLYGON
         self.shapes = []
         self.current = None
         self.selectedShape = None  # save the selected shape here
@@ -62,8 +62,8 @@ class Canvas(QWidget):
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.WheelFocus)
         self.verified = False
-        self.drawSquare = False
 
+        self.drawSquare = False
         #initialisation for panning
         self.pan_initial_pos = QPoint()
 
@@ -83,14 +83,28 @@ class Canvas(QWidget):
     def isVisible(self, shape):
         return self.visible.get(shape, True)
 
-    def drawing(self):
-        return self.mode == self.CREATE
+    def isDrawingPolygon(self):
+        return self.mode == self.CREATE_POLYGON
 
-    def editing(self):
-        return self.mode == self.EDIT
+    def isDrawingPoint(self):
+        return self.mode == self.CREATE_POINT
 
-    def setEditing(self, value=True):
-        self.mode = self.EDIT if value else self.CREATE
+    def isEditingPolygon(self):
+        return self.mode == self.EDIT_POLYGON
+
+    def isEditingPoint(self):
+        return self.mode == self.EDIT_POINT
+
+    def setEditingPolygon(self, value=True):
+        self.mode = self.EDIT_POLYGON if value else self.CREATE_POLYGON
+        if not value:  # Create
+            self.unHighlight()
+            self.deSelectShape()
+        self.prevPoint = QPointF()
+        self.repaint()
+
+    def setEditingPoint(self, value=True):
+        self.mode = self.EDIT_POINT if value else self.CREATE_POINT
         if not value:  # Create
             self.unHighlight()
             self.deSelectShape()
@@ -116,7 +130,7 @@ class Canvas(QWidget):
                 'X: %d; Y: %d' % (pos.x(), pos.y()))
 
         # Polygon drawing.
-        if self.drawing():
+        if self.isDrawingPolygon() or self.isDrawingPoint():
             self.overrideCursor(CURSOR_DRAW)
             if self.current:
                 # Display annotation width and height while drawing
@@ -232,8 +246,12 @@ class Canvas(QWidget):
         pos = self.transformPos(ev.pos())
 
         if ev.button() == Qt.LeftButton:
-            if self.drawing():
+            if self.isDrawingPolygon():
                 self.handleDrawing(pos)
+
+            elif self.isDrawingPoint():
+                self.handlePoint(pos)
+
             else:
                 selection = self.selectShapePoint(pos)
                 self.prevPoint = pos
@@ -243,7 +261,7 @@ class Canvas(QWidget):
                     QApplication.setOverrideCursor(QCursor(Qt.OpenHandCursor))
                     self.pan_initial_pos = pos
 
-        elif ev.button() == Qt.RightButton and self.editing():
+        elif ev.button() == Qt.RightButton and self.isEditingPolygon():
             self.selectShapePoint(pos)
             self.prevPoint = pos
         self.update()
@@ -264,7 +282,7 @@ class Canvas(QWidget):
                 self.overrideCursor(CURSOR_GRAB)
         elif ev.button() == Qt.LeftButton:
             pos = self.transformPos(ev.pos())
-            if self.drawing():
+            if self.isDrawingPolygon():
                 self.handleDrawing(pos)
             else:
                 #pan
@@ -303,7 +321,7 @@ class Canvas(QWidget):
             self.current.addPoint(QPointF(maxX, minY))
             self.current.addPoint(targetPos)
             self.current.addPoint(QPointF(minX, maxY))
-            self.finalise()
+            self.finalisePolygon()
         elif not self.outOfPixmap(pos):
             self.current = Shape()
             self.current.addPoint(pos)
@@ -312,18 +330,39 @@ class Canvas(QWidget):
             self.drawingPolygon.emit(True)
             self.update()
 
+    def handlePoint(self, pos):
+        if not self.outOfPixmap(pos):
+        #    initPos = self.current[0]
+        #    minX = initPos.x()
+        #    minY = initPos.y()
+        #    targetPos = self.line[1]
+        #    maxX = targetPos.x()
+        #    maxY = targetPos.y()
+        #    self.current.addPoint(QPointF(maxX, minY))
+        #    self.current.addPoint(targetPos)
+        #    self.current.addPoint(QPointF(minX, maxY))
+        #    self.finalisePolygon()
+        # todo--->
+            self.current = Shape()
+            self.current.addPoint(pos)
+            self.current.addPoint(pos)
+            self.setHiding()
+            self.drawingPolygon.emit(True)
+            self.update()
+            self.finalisePoint()
+
     def setHiding(self, enable=True):
         self._hideBackround = self.hideBackround if enable else False
 
     def canCloseShape(self):
-        return self.drawing() and self.current and len(self.current) > 2
+        return self.isDrawingPolygon() and self.current and len(self.current) > 2
 
     def mouseDoubleClickEvent(self, ev):
         # We need at least 4 points here, since the mousePress handler
         # adds an extra one before this handler is called.
         if self.canCloseShape() and len(self.current) > 3:
             self.current.popPoint()
-            self.finalise()
+            self.finalisePolygon()
 
     def selectShape(self, shape):
         self.deSelectShape()
@@ -501,7 +540,7 @@ class Canvas(QWidget):
             p.setBrush(brush)
             p.drawRect(leftTop.x(), leftTop.y(), rectWidth, rectHeight)
 
-        if self.drawing() and not self.prevPoint.isNull() and not self.outOfPixmap(self.prevPoint):
+        if self.isDrawingPolygon() and not self.prevPoint.isNull() and not self.outOfPixmap(self.prevPoint):
             p.setPen(QColor(0, 0, 0))
             p.drawLine(self.prevPoint.x(), 0, self.prevPoint.x(), self.pixmap.height())
             p.drawLine(0, self.prevPoint.y(), self.pixmap.width(), self.prevPoint.y())
@@ -535,7 +574,7 @@ class Canvas(QWidget):
         w, h = self.pixmap.width(), self.pixmap.height()
         return not (0 <= p.x() <= w and 0 <= p.y() <= h)
 
-    def finalise(self):
+    def finalisePolygon(self):
         assert self.current
         if self.current.points[0] == self.current.points[-1]:
             self.current = None
@@ -543,6 +582,15 @@ class Canvas(QWidget):
             self.update()
             return
 
+        self.current.close()
+        self.shapes.append(self.current)
+        self.current = None
+        self.setHiding(False)
+        self.newShape.emit()
+        self.update()
+
+    def finalisePoint(self):
+        assert self.current
         self.current.close()
         self.shapes.append(self.current)
         self.current = None
@@ -596,7 +644,7 @@ class Canvas(QWidget):
             self.drawingPolygon.emit(False)
             self.update()
         elif key == Qt.Key_Return and self.canCloseShape():
-            self.finalise()
+            self.finalisePolygon()
         elif key == Qt.Key_Left and self.selectedShape:
             self.moveOnePixel('Left')
         elif key == Qt.Key_Right and self.selectedShape:
@@ -704,3 +752,6 @@ class Canvas(QWidget):
 
     def setDrawingShapeToSquare(self, status):
         self.drawSquare = status
+
+    def setDrawingShapeToPoint(self, status):
+        self.drawPoint = status
