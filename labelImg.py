@@ -11,6 +11,7 @@ import subprocess
 
 from functools import partial
 from collections import defaultdict
+import random
 
 try:
     from PyQt5.QtGui import *
@@ -297,6 +298,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         help = action(getStr('tutorial'), self.showTutorialDialog, None, 'help', getStr('tutorialDetail'))
         showInfo = action(getStr('info'), self.showInfoDialog, None, 'help', getStr('info'))
+        
 
         zoom = QWidgetAction(self)
         zoom.setDefaultWidget(self.zoomWidget)
@@ -397,6 +399,11 @@ class MainWindow(QMainWindow, WindowMixin):
         self.singleClassMode.setCheckable(True)
         self.singleClassMode.setChecked(settings.get(SETTING_SINGLE_CLASS, False))
         self.lastLabel = None
+        # Shuffle images : Enable shuffle when importing images
+        self.shuffleMode = QAction(getStr('shuffleMode'), self)
+        self.shuffleMode.setCheckable(True)
+        self.shuffleMode.setShortcut("Ctrl+Shift+U")
+        self.shuffleMode.setChecked(settings.get(SETTING_SHUFFLE_MODE, False))
         # Add option to enable/disable labels being displayed at the top of bounding boxes
         self.displayLabelOption = QAction(getStr('displayLabel'), self)
         self.displayLabelOption.setShortcut("Ctrl+Shift+P")
@@ -410,6 +417,7 @@ class MainWindow(QMainWindow, WindowMixin):
         addActions(self.menus.view, (
             self.autoSaving,
             self.singleClassMode,
+            self.shuffleMode,
             self.displayLabelOption,
             labels, advancedMode, None,
             hideAll, showAll, None,
@@ -1218,6 +1226,7 @@ class MainWindow(QMainWindow, WindowMixin):
             settings[SETTING_LAST_OPEN_DIR] = ''
 
         settings[SETTING_AUTO_SAVE] = self.autoSaving.isChecked()
+        settings[SETTING_AUTO_SAVE] = self.shuffleMode.isChecked()
         settings[SETTING_SINGLE_CLASS] = self.singleClassMode.isChecked()
         settings[SETTING_PAINT_LABEL] = self.displayLabelOption.isChecked()
         settings[SETTING_DRAW_SQUARE] = self.drawSquaresOption.isChecked()
@@ -1239,6 +1248,11 @@ class MainWindow(QMainWindow, WindowMixin):
                     path = ustr(os.path.abspath(relativePath))
                     images.append(path)
         natural_sort(images, key=lambda x: x.lower())
+        
+        # todo-shuffle if set tick
+        if self.shuffleMode.isChecked():
+            random.shuffle(images)
+        
         return images
 
     def changeSavedirDialog(self, _value=False):

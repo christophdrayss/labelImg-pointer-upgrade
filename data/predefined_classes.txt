@@ -1,15 +1,35 @@
-dog
-person
-cat
-tv
-car
-meatballs
-marinara sauce
-tomato soup
-chicken noodle soup
-french onion soup
-chicken breast
-ribs
-pulled pork
-hamburger
-cavity
+hand
+i_1a
+i_1b
+i_1c
+i_1d
+i_2a
+i_2b
+i_2c
+i_2d
+i_3a
+i_3b
+i_3c
+i_3d
+i_4a
+i_4b
+i_4c
+i_4d
+i_5a
+i_5b
+i_5c
+i_5d
+peanuts_roasted_salted
+augustiner-bottle
+club_mate-bottle
+tic_tac-orange
+snickers-std
+wrigleys-blue
+wrigleys-yellow
+leibniz-minis_butterkeks
+lays-green
+lays-blue
+lays-yellow
+brandenburger-naturell
+brandenburger-classic
+unknown-object
