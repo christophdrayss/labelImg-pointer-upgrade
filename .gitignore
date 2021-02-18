@@ -1,5 +1,7 @@
 resources/icons/.DS_Store
 
+/import
+
 resources.py
 
 .idea*

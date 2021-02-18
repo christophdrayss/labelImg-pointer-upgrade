@@ -15,4 +15,5 @@ import sys
 # uri
 cloud_uri = sys.argv[1]
 
-os.system('gsutil -m cp -c -r '+cloud_uri+' ./data/import/')
+os.system('mkdir -p import')
+os.system('gsutil -m cp -c -r '+cloud_uri+' ./import/')

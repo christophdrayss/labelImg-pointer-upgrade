@@ -1456,11 +1456,26 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def deleteImg(self):
         deletePath = self.filePath
+        
+        deletingIndex = self.mImgList.index(self.filePath)
+        
+        jumpBackIndex = deletingIndex
+        if deletingIndex >= 1:
+            jumpBackIndex = self.mImgList.index(self.filePath) - 1
+        
+        print("deletingIndex "+str(deletingIndex))
+        print("deletePath "+deletePath)
+        
         if deletePath is not None:
             self.openNextImg()
             if os.path.exists(deletePath):
                 os.remove(deletePath)
             self.importDirImages(self.lastOpenDir)
+            print("After deleting jump to index "+str(jumpBackIndex))
+            filename = self.mImgList[jumpBackIndex]
+            if filename:
+                self.loadFile(filename)
+
 
     def resetAll(self):
         self.settings.reset()
