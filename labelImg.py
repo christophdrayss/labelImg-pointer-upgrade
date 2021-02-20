@@ -129,6 +129,24 @@ class MainWindow(QMainWindow, WindowMixin):
         useDefaultLabelContainer = QWidget()
         useDefaultLabelContainer.setLayout(useDefaultLabelQHBoxLayout)
 
+        # Create a widget for Auto-Point
+        self.autoPointCheckbox = QCheckBox(getStr('autoPoint'))
+        self.autoPointCheckbox.setChecked(False)
+        self.defaultLabelTextLine = QLineEdit()
+        autoPointQHBoxLayout = QHBoxLayout()
+        autoPointQHBoxLayout.addWidget(self.autoPointCheckbox)
+        autoPointContainer = QWidget()
+        autoPointContainer.setLayout(autoPointQHBoxLayout)
+
+        # Create a widget for Auto-Bbox
+        self.autoBboxCheckbox = QCheckBox(getStr('autoBbox'))
+        self.autoBboxCheckbox.setChecked(False)
+        self.defaultLabelTextLine = QLineEdit()
+        autoBboxQHBoxLayout = QHBoxLayout()
+        autoBboxQHBoxLayout.addWidget(self.autoBboxCheckbox)
+        autoBboxContainer = QWidget()
+        autoBboxContainer.setLayout(autoBboxQHBoxLayout)
+
         # Create a widget for edit and diffc button
         self.diffcButton = QCheckBox(getStr('useDifficult'))
         self.diffcButton.setChecked(False)
@@ -140,6 +158,8 @@ class MainWindow(QMainWindow, WindowMixin):
         listLayout.addWidget(self.editButton)
         listLayout.addWidget(self.diffcButton)
         listLayout.addWidget(useDefaultLabelContainer)
+        listLayout.addWidget(autoPointContainer)
+        listLayout.addWidget(autoBboxContainer)
 
         # Create and add combobox for showing unique labels in group
         self.comboBox = ComboBox(self)
@@ -1249,7 +1269,6 @@ class MainWindow(QMainWindow, WindowMixin):
                     images.append(path)
         natural_sort(images, key=lambda x: x.lower())
         
-        # todo-shuffle if set tick
         if self.shuffleMode.isChecked():
             random.shuffle(images)
         
@@ -1389,6 +1408,14 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if filename:
             self.loadFile(filename)
+
+        # todo: activate auto point or auto bbox here
+        if self.autoPointCheckbox.isChecked():
+            self.createPoint()
+        elif self.autoBboxCheckbox.isChecked():
+            self.createShape()
+
+        
 
     def openFile(self, _value=False):
         if not self.mayContinue():
