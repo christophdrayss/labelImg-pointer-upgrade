@@ -129,10 +129,16 @@ class MainWindow(QMainWindow, WindowMixin):
         useDefaultLabelContainer = QWidget()
         useDefaultLabelContainer.setLayout(useDefaultLabelQHBoxLayout)
 
+        # Create a widget for edit and diffc button
+        self.diffcButton = QCheckBox(getStr('useDifficult'))
+        self.diffcButton.setChecked(False)
+        self.diffcButton.stateChanged.connect(self.btnstate)
+        self.editButton = QToolButton()
+        self.editButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
         # Create a widget for Auto-Point
         self.autoPointCheckbox = QCheckBox(getStr('autoPoint'))
         self.autoPointCheckbox.setChecked(False)
-        self.defaultLabelTextLine = QLineEdit()
         autoPointQHBoxLayout = QHBoxLayout()
         autoPointQHBoxLayout.addWidget(self.autoPointCheckbox)
         autoPointContainer = QWidget()
@@ -141,18 +147,10 @@ class MainWindow(QMainWindow, WindowMixin):
         # Create a widget for Auto-Bbox
         self.autoBboxCheckbox = QCheckBox(getStr('autoBbox'))
         self.autoBboxCheckbox.setChecked(False)
-        self.defaultLabelTextLine = QLineEdit()
         autoBboxQHBoxLayout = QHBoxLayout()
         autoBboxQHBoxLayout.addWidget(self.autoBboxCheckbox)
         autoBboxContainer = QWidget()
         autoBboxContainer.setLayout(autoBboxQHBoxLayout)
-
-        # Create a widget for edit and diffc button
-        self.diffcButton = QCheckBox(getStr('useDifficult'))
-        self.diffcButton.setChecked(False)
-        self.diffcButton.stateChanged.connect(self.btnstate)
-        self.editButton = QToolButton()
-        self.editButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         # Add some of widgets to listLayout
         listLayout.addWidget(self.editButton)
