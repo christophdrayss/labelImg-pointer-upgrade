@@ -275,7 +275,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         close = action(getStr('closeCur'), self.closeFile, 'Ctrl+W', 'close', getStr('closeCurDetail'))
 
-        deleteImg = action(getStr('deleteImg'), self.deleteImg, 'Ctrl+Shift+D', 'close', getStr('deleteImgDetail'))
+        deleteImg = action(getStr('deleteImg'), self.deleteImg, 'k', 'close', getStr('deleteImgDetail'))
 
         resetAll = action(getStr('resetAll'), self.resetAll, None, 'resetall', getStr('resetAllDetail'))
 
@@ -1380,6 +1380,13 @@ class MainWindow(QMainWindow, WindowMixin):
             if filename:
                 self.loadFile(filename)
 
+                if self.autoPointCheckbox.isChecked():
+                    self.createPoint()
+                elif self.autoBboxCheckbox.isChecked():
+                    self.createShape()
+
+        
+
     def openNextImg(self, _value=False):
         # Proceding prev image without dialog if having any label
         if self.autoSaving.isChecked():
@@ -1407,13 +1414,11 @@ class MainWindow(QMainWindow, WindowMixin):
         if filename:
             self.loadFile(filename)
 
-        # todo: activate auto point or auto bbox here
-        if self.autoPointCheckbox.isChecked():
-            self.createPoint()
-        elif self.autoBboxCheckbox.isChecked():
-            self.createShape()
+            if self.autoPointCheckbox.isChecked():
+                self.createPoint()
+            elif self.autoBboxCheckbox.isChecked():
+                self.createShape()
 
-        
 
     def openFile(self, _value=False):
         if not self.mayContinue():
