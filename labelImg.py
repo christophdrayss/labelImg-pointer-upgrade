@@ -1491,7 +1491,7 @@ class MainWindow(QMainWindow, WindowMixin):
         
         jumpBackIndex = deletingIndex
         if deletingIndex >= 1:
-            jumpBackIndex = self.mImgList.index(self.filePath) - 1
+            jumpBackIndex = self.mImgList.index(self.filePath)
         
         print("deletingIndex "+str(deletingIndex))
         print("deletePath "+deletePath)
